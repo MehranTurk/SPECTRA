@@ -120,7 +120,7 @@ ollama
 
 ### 1️⃣ Clone the Repository
 ```bash
-git clone https://github.com/<your-username>/SPECTRA.git
+git clone https://github.com/MehranTurk/SPECTRA.git
 cd SPECTRA
 ```
 
