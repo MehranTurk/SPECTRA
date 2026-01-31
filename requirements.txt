@@ -1,19 +1,20 @@
 # SPECTRA Framework Dependencies
 # Installation: pip install -r requirements.txt
 # Core runtime requirements
-pymetasploit3>=1.1.0
-pydantic>=1.10.7
-langchain-community>=0.0.20
-ollama>=0.1.0
-requests>=2.28.2
+pymetasploit3
+pydantic
+langchain-community
+ollama
+requests
 
 # Optional helpers
-python-dotenv>=1.0.0
-typing-extensions>=4.5.0
+python-dotenv
+typing-extensions
 
 # Dev / CI / testing (optional)
-pytest>=7.2
-pytest-mock>=3.10
-black>=24.1
-flake8>=6.0
-mypy>=1.9
+pytest
+pytest-mock
+black
+flake8
+mypy
+
