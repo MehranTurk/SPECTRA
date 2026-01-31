@@ -1,206 +1,212 @@
-# SPECTRA — Full‑Spectrum Tactical Penetration Framework
+# SPECTRA
 
-> **Author:** MehranTurk (M.T)
->
-> **Status:** Prototype / Research Framework
->
-> **Scope:** Authorized security testing, research, and lab environments only.
+**Author:** MehranTurk (M.T)  
+**Status:** Prototype / Research Framework  
+**Scope:** Authorized security testing, research, and lab environments only.
 
 ---
 
 ## 🚀 Overview
-**SPECTRA** is a modular, research‑grade penetration testing framework designed around **clean architecture**, **explicit failure taxonomy**, and an **AI‑assisted decision engine**. Rather than being a single script, SPECTRA separates reconnaissance, decision‑making, execution, and post‑exploitation into well‑defined components that can evolve independently.
+SPECTRA is a modular, research‑grade penetration testing framework built around clean architecture, explicit failure taxonomy, and an AI‑assisted decision engine. It separates reconnaissance, decision‑making, execution, and post‑exploitation into well‑defined components so each part can be extended or replaced independently.
 
-**What makes SPECTRA different?**
-- 🧠 **AI‑assisted strategy** (Ollama / LLM‑driven planning)
-- 🧩 **Strict modularity** (scanner, exploiter, post‑exploit)
-- 🧪 **Failure taxonomy** (clear reasons for why an action failed)
-- 🔌 **Metasploit RPC abstraction** (no tight coupling to msfrpc internals)
-- 🧭 **Lifecycle thinking** (from recon → access → upgrade)
+What makes SPECTRA different?
+- 🧠 AI‑assisted strategy (local LLM via Ollama / LLM adapter)
+- 🧩 Strict modularity (scanner, exploiter, post‑exploit)
+- 🧪 Failure taxonomy (clear, machine‑friendly reasons for failures)
+- 🔌 Metasploit RPC abstraction (wrapper over pymetasploit3)
+- 🧭 Lifecycle thinking (from recon → access → upgrade)
 
 ---
 
 ## 🏗️ Project Structure
 ```
 SPECTRA_PROJECT/
-├── main.py                 # Entry point
+├── main.py                 # Entry point (logging, flags, graceful shutdown)
+├── requirements.txt        # Python dependencies
 ├── core/
 │   ├── orchestrator.py     # Central workflow controller
-│   ├── rpc_client.py       # Metasploit RPC abstraction
-│   └── exceptions.py       # Failure taxonomy & custom exceptions
+│   ├── rpc_client.py       # Metasploit RPC abstraction (MSFClient)
+│   └── exceptions.py       # Failure taxonomy & structured exceptions
 ├── modules/
-│   ├── scanner.py          # Reconnaissance (Nmap, web surface)
-│   ├── exploiter.py        # Exploit execution & error classification
+│   ├── scanner.py          # Reconnaissance (nmap parsing, parallel scans)
+│   ├── exploiter.py        # Exploit execution (module API + console fallback)
 │   └── post_exploit.py     # Session lifecycle & upgrades
 └── brain/
-    └── ai_engine.py        # AI decision engine (Ollama)
+    └── ai_engine.py        # AI decision engine (LLM adapter + validation)
 ```
 
-Each layer has **one responsibility** and can be replaced or extended without breaking the rest of the framework.
+Each component has one responsibility and can be replaced without breaking the rest of the framework.
 
 ---
 
 ## 🧠 Architecture Philosophy
 
 ### 1️⃣ Separation of Concerns
-- **ScannerUnit** → Collects facts (no decisions)
-- **AIEngine** → Suggests a strategy (no execution)
-- **ExploiterUnit** → Executes actions (no recon)
-- **PostExploitUnit** → Handles session lifecycle
-- **Orchestrator** → Coordinates everything
+- **ScannerUnit** → collects facts (no decisions) and returns structured JSON-like dictionaries
+- **AIEngine** → suggests a strict JSON strategy (validated)
+- **ExploiterUnit** → executes actions (no recon)
+- **PostExploitUnit** → handles session lifecycle and upgrades
+- **Orchestrator** → coordinates the overall flow
 
-This design keeps SPECTRA **auditable, testable, and extensible**.
+This keeps SPECTRA auditable, testable, and extensible.
 
 ### 2️⃣ Failure Taxonomy
-Instead of vague errors, SPECTRA classifies failures explicitly:
+Failures are classified with a machine‑friendly enum (FailureReason). Examples:
 - `TARGET_PATCHED_OR_NOT_VULNERABLE`
 - `PAYLOAD_OR_ARCH_MISMATCH`
 - `CONNECTION_REFUSED_OR_IPS_BLOCK`
 - `MSF_RPC_SYNC_ISSUE`
 - `UNDEFINED_INTERNAL_ERROR`
 
-This enables:
-- Smarter retries
-- Better reporting
-- Cleaner automation logic
+Structured exceptions (SpectraException and subclasses) include a `to_dict()` helper for logging and reporting.
 
 ---
 
 ## 🤖 AI Decision Engine
-The **AIEngine** analyzes reconnaissance output and returns a **strict JSON strategy**:
+The AI engine analyzes reconnaissance output and returns a strict JSON strategy validated by pydantic:
+
+Example strategy:
 ```json
 {
   "module": "exploit/path",
   "payload": "payload/path",
   "options": {},
-  "vector": "system | web"
+  "vector": "system" // or "web"
 }
 ```
 
 Key properties:
-- Deterministic (temperature = 0)
-- JSON‑only output enforcement
-- Graceful fallback if AI fails
+- Deterministic (temperature = 0) via LLM adapter
+- JSON‑only output enforcement and safe JSON extraction
+- Strict validation with pydantic schema
+- Graceful fallback: if the LLM cannot safely propose a plan the engine returns `{"manual_review": true, "rationale": "..."}`
 
-> ⚠️ AI suggests strategies — it does **not** blindly execute actions.
+> ⚠️ AI suggests strategies — it does **not** blindly execute them when `--dry-run` is off you still control final execution (there is an `--yes` auto-confirm flag for automation).
 
 ---
 
 ## 🔌 Metasploit Integration
-SPECTRA communicates with Metasploit **only** through RPC using `pymetasploit3`.
+SPECTRA communicates with Metasploit through a safe wrapper over `pymetasploit3` (MSFClient). Improvements include:
+- `connect()` and `connect_or_raise()` with retries/backoff
+- `disconnect()`, `health_check()` and context‑manager support
+- Best‑effort handling when `pymetasploit3` internals differ across versions
 
-Benefits:
-- No shelling into `msfconsole`
-- Cleaner automation
-- Easier future migration (REST, alternative engines)
+Notes:
+- Modules (exploiter/post_exploit) receive the underlying msfrpc client and prefer the module API (`msf.modules.use`) with a console fallback.
 
 ---
 
 ## 📦 Requirements
-All Python dependencies are listed in **`requirements.txt`**.
+Python packages are listed in `requirements.txt`.
 
-### `requirements.txt`
-```txt
-pymetasploit3
-pydantic
-langchain-community
-ollama
+Suggested minimal runtime requirements (example):
+```text
+pymetasploit3>=1.1.0
+pydantic>=1.10.7
+langchain-community>=0.0.20
+ollama>=0.1.0
+requests>=2.28.2
 ```
 
-### System Requirements
-- Linux (recommended: **Kali Linux**)
-- Python **3.9+**
-- Metasploit Framework
-- Ollama running locally
-- Nmap installed and accessible in PATH
+System requirements:
+- Linux (recommended: Kali)
+- Python 3.9+
+- Metasploit Framework (msfrpcd)
+- Ollama (if using local LLM) and the chosen model pulled
+- nmap installed and accessible in PATH
+- PostgreSQL if required by your Metasploit setup
 
 ---
 
 ## ⚙️ Setup & Installation
 
-### 1️⃣ Clone the Repository
+1) Clone:
 ```bash
 git clone https://github.com/MehranTurk/SPECTRA.git
 cd SPECTRA
 ```
 
-### 2️⃣ Create Virtual Environment (Recommended)
+2) Virtual environment:
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-```
-
-### 3️⃣ Install Python Dependencies
-```bash
 pip install -r requirements.txt
 ```
 
-### 4️⃣ Start Required Services
-- **Metasploit RPC** (example):
+3) Ensure services are running (example):
+- Start Metasploit RPC:
 ```bash
-msfrpcd -P <password> -u msf -S false
+msfrpcd -P "<secure-password>" -u msf -S false &
 ```
-
-- **Ollama** (ensure model is pulled):
+- If using Ollama locally:
 ```bash
 ollama pull dolphin-llama3
+ollama serve &
+```
+- Ensure `nmap` is installed and reachable.
+
+4) Run (safe dry-run first):
+```bash
+export MSF_PASSWORD="<secure-password>"
+python3 main.py <TARGET> <LHOST> --dry-run --log-level DEBUG
 ```
 
 ---
 
 ## ▶️ Running SPECTRA
+Basic usage:
 ```bash
-python3 main.py <TARGET> <LHOST>
+python3 main.py <TARGET> <LHOST> [--dry-run] [--yes] [--log-level DEBUG|INFO|...]
 ```
 
-Where:
-- `<TARGET>` → Authorized target IP / host
-- `<LHOST>` → Local callback address
+Flags:
+- `--dry-run` — perform all planning steps but do not actually trigger exploits
+- `--yes` — auto‑confirm plans (use with caution)
+- `--log-level` — logging verbosity
+- `--version` — print version and exit
 
-> 🔒 **IMPORTANT:** Only run SPECTRA against systems you **own or have explicit permission to test**.
-
----
-
-## 🧪 Intended Use Cases
-- Security research & education
-- Red team prototyping
-- Framework architecture experiments
-- AI‑assisted decision modeling
-
-**Not intended for:**
-- Unauthenticated mass scanning
-- Autonomous exploitation
-- Unauthorized testing
+Orchestrator returns a structured result (recommended for automation):
+```json
+{
+  "status": "success|failure|partial|interrupted|unknown",
+  "reason": "short_code",
+  "details": {...}
+}
+```
 
 ---
 
-## 🛣️ Roadmap (Planned)
-- ✔️ Modular architecture
-- ✔️ Failure taxonomy
-- ✔️ AI strategy engine
-- ⏳ Strategy validation layer
-- ⏳ Stateful decision engine
-- ⏳ Plugin system
-- ⏳ Reporting / JSON export
+## 🛡️ Safety & Ethics
+SPECTRA is intended strictly for:
+- Educational purposes
+- Authorized penetration testing
+- Security research on systems you OWN or have EXPLICIT WRITTEN PERMISSION to test
+
+Never run this tool against systems you do not have permission to test. The author accepts no liability for misuse.
 
 ---
 
-## ⚠️ Legal & Ethical Disclaimer
-This project is provided **for educational and authorized security testing only**.
-
-The author assumes **no liability** for misuse of this software. Always comply with:
-- Local laws
-- Organizational policies
-- Explicit written authorization
+## 🧪 Testing & CI (Recommended)
+- Add unit tests (pytest + pytest-mock) for:
+  - AIEngine (mock LLM)
+  - RPC wrapper (mock pymetasploit3 client)
+  - Exploiter (mock module/console)
+  - Scanner (mock subprocess)
+- Add a GitHub Actions workflow for lint and tests (black, flake8, mypy, pytest).
+- Use a lockfile tool (pip‑compile or poetry) for reproducible installs.
 
 ---
 
-## ⭐ Final Notes
-SPECTRA is intentionally **minimal but structured**.
+## ⭐ Notes & Roadmap
+- Current: modular architecture, failure taxonomy, AI strategy engine, safer MSF wrapper.
+- Next: stateful decision engine, plugin system, detailed reporting/export, more unit tests and CI coverage.
 
-It is designed to grow — not to impress with volume, but with **clarity, control, and intent**.
+---
 
-If you find this project useful, consider starring the repository and contributing ideas.
+## LICENSE
+MIT License with security & ethical use disclaimer. See LICENSE file.
+
+---
 
 — **MehranTurk (M.T)**
 
