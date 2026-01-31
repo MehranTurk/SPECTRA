@@ -1,6 +1,6 @@
-MIT License
+MIT License with Security & Ethical Use Disclaimer
 
-Copyright (c) 2026 M.T
+Copyright (c) 2026 MehranTurk
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -11,6 +11,29 @@ furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
+
+--- SECURITY & ETHICAL USE DISCLAIMER ---
+
+This Software ("SPECTRA") is intended strictly for:
+- Educational purposes
+- Authorized penetration testing
+- Security research on systems you OWN or have EXPLICIT WRITTEN PERMISSION to test
+
+Any use of this Software against systems, networks, or assets without proper authorization
+is strictly prohibited and may violate local, national, or international laws.
+
+The author takes NO responsibility for:
+- Illegal use
+- Damage to systems or data
+- Service disruption
+- Legal consequences arising from misuse
+
+By using this Software, YOU AGREE that:
+- You are solely responsible for your actions
+- You understand applicable cybersecurity laws in your jurisdiction
+- You accept full legal liability for any misuse
+
+--- NO WARRANTY ---
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
