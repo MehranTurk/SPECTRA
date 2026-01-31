@@ -1,0 +1,16 @@
+# SPECTRA Framework Dependencies
+# Installation: pip install -r requirements.txt
+
+# Core Metasploit RPC Communication
+pymetasploit3==1.0.3
+
+# AI & LLM Orchestration
+langchain==0.1.0
+langchain-community==0.0.10
+ollama==0.1.6
+
+# Data Validation & Schemas
+pydantic==2.5.3
+
+# Networking & Utilities
+requests==2.31.0
